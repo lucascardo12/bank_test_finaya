@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Configuration;
 public class ConfigurationBeans {
 
     @Bean
-    public WalletsService walletsService(WalletRepository walletRepository) {
-        return new WalletsService(walletRepository);
+    public WalletsService walletsService(WalletRepository walletRepository, TransactionService transactionService) {
+        return new WalletsService(transactionService, walletRepository);
     }
 
     @Bean

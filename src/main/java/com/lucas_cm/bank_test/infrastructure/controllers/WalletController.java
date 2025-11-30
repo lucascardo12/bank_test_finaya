@@ -5,6 +5,7 @@ import com.lucas_cm.bank_test.domain.entities.WalletEntity;
 import com.lucas_cm.bank_test.domain.services.TransactionService;
 import com.lucas_cm.bank_test.domain.services.WalletsService;
 import com.lucas_cm.bank_test.infrastructure.dtos.CreateWalletDto;
+import com.lucas_cm.bank_test.infrastructure.dtos.DepositDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.GetBalanceDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.RegisterPixKeyDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,5 +46,15 @@ public class WalletController {
         }
         var amount = transactionService.amountByWalletIdAndDate(id, at);
         return new GetBalanceDto(id, amount);
+    }
+
+    @PostMapping(value = "/{id}/deposit")
+    WalletEntity deposit(@PathVariable final String id, @RequestBody final DepositDto body) {
+        return walletsService.deposit(id, body.amount());
+    }
+
+    @PostMapping(value = "/{id}/withdraw")
+    WalletEntity withdraw(@PathVariable final String id, @RequestBody final DepositDto body) {
+        return walletsService.withdraw(id, body.amount());
     }
 }

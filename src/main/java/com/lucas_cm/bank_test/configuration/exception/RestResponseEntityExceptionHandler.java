@@ -20,6 +20,8 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         Map<String, Object> body = new HashMap<>();
         body.put("message", e.getMessage());
         body.put("error_code", e.getErrorCode());
+        if (e.getData() != null)
+            body.put("data", e.getData());
 
         return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }

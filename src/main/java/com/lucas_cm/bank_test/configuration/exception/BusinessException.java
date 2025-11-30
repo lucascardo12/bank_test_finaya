@@ -8,4 +8,5 @@ import lombok.Setter;
 public class BusinessException extends RuntimeException {
     private String errorCode;
     private String message;
+    private Object data;
 }
