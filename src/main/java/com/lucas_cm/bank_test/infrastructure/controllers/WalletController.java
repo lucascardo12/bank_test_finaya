@@ -10,10 +10,11 @@ import com.lucas_cm.bank_test.infrastructure.dtos.GetBalanceDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.RegisterPixKeyDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @RestController
 @AllArgsConstructor
@@ -37,14 +38,18 @@ public class WalletController {
     GetBalanceDto getBalance(
             @PathVariable final String id,
             @RequestParam(required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss.SSS")
-            LocalDateTime at
+            String at
     ) {
         var wallet = walletsService.findById(id);
         if (at == null) {
             return new GetBalanceDto(wallet.getId(), wallet.getCurrentBalance());
         }
-        var amount = transactionService.amountByWalletIdAndDate(id, at);
+        // Converte string ISO com Z → Instant
+        Instant instant = Instant.parse(at);
+
+        // Converte Instant → LocalDateTime (UTC ou outra timezone)
+        LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+        var amount = transactionService.amountByWalletIdAndDate(id, dateTime);
         return new GetBalanceDto(id, amount);
     }
 

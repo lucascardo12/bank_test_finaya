@@ -19,7 +19,8 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     @Query("SELECT SUM(t.amount) FROM TransactionEntity t " +
             "WHERE t.walletId = :walletId " +
-            "AND t.createdAt = :at ")
+            "AND t.createdAt >= :at " +
+            "AND t.status = 'CONFIRMED' ")
     BigDecimal amountByWalletIdAndDate(
             @Param("walletId") String walletId,
             @Param("at") LocalDateTime at
