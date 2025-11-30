@@ -24,7 +24,7 @@ public class WalletEntity {
     private String userId;
     @Column(name = "current_balance", nullable = false)
     private BigDecimal currentBalance;
-    @Column(name = "pix_key")
+    @Column(name = "pix_key", unique = true)
     private String pixKey;
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

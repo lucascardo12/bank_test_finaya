@@ -12,9 +12,10 @@ import java.time.LocalDateTime;
 @Table(name = "event_pix")
 public class EventPixEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", updatable = false, unique = true, nullable = false)
     private Long id;
-    @Column(name = "event_id", nullable = false)
+    @Column(name = "event_id", nullable = false, unique = true)
     private String eventId;
     @Column(name = "event_type", nullable = false)
     private String eventType;
