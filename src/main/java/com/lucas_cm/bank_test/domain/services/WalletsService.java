@@ -29,7 +29,7 @@ public class WalletsService {
     }
 
     public WalletEntity findById(String id) {
-        var findWallet = walletRepository.findByUserId(id);
+        var findWallet = walletRepository.findById(id);
         if (findWallet.isEmpty()) throw new WalletNotFoundException();
         return findWallet.get();
     }
