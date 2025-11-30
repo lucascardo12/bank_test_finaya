@@ -8,7 +8,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
 
-import java.util.Date;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -22,11 +23,11 @@ public class WalletEntity {
     @Column(name = "user_id", nullable = false)
     private String userId;
     @Column(name = "current_balance", nullable = false)
-    private double currentBalance;
+    private BigDecimal currentBalance;
     @Column(name = "pix_key")
     private String pixKey;
     @Column(name = "created_at", nullable = false)
-    private Date createdAt;
+    private LocalDateTime createdAt;
     @Column(name = "updated_at", nullable = false)
-    private Date updatedAt;
+    private LocalDateTime updatedAt;
 }

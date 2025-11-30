@@ -1,12 +1,9 @@
 package com.lucas_cm.bank_test.infrastructure.dtos;
 
-import com.lucas_cm.bank_test.domain.entities.TransactionEntity;
-
-import java.util.List;
+import java.math.BigDecimal;
 
 public record GetBalanceDto(
         String walletId,
-        double currentBalance,
-        List<TransactionEntity> transactions
+        BigDecimal currentBalance
 ) {
 }

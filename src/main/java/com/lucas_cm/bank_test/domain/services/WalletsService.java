@@ -33,5 +33,5 @@ public class WalletsService {
         if (findWallet.isEmpty()) throw new WalletNotFoundException();
         return findWallet.get();
     }
-
+    
 }

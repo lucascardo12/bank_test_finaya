@@ -6,6 +6,8 @@ import com.lucas_cm.bank_test.domain.repositories.TransactionRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -23,5 +25,11 @@ public class TransactionService {
     public List<TransactionEntity> findByWalletId(String walletId) {
         var transactions = transactionRepository.findByWalletId(walletId);
         return transactions.orElseGet(List::of);
+    }
+
+    public BigDecimal amountByWalletIdAndDate(String walletId, LocalDateTime at) {
+        var balance = transactionRepository.amountByWalletIdAndDate(walletId, at);
+        if (balance == null) return BigDecimal.ZERO;
+        return balance;
     }
 }
