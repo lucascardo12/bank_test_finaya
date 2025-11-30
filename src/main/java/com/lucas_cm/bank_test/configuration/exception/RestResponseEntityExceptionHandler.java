@@ -32,4 +32,14 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         body.put("message", "Ocorreu um erro no serviço");
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Object> handleNotFoundExceptionError(NotFoundException e) {
+        log.info("NotFoundException", e);
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", e.getMessage());
+        body.put("error_code", e.getErrorCode());
+
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
 }
