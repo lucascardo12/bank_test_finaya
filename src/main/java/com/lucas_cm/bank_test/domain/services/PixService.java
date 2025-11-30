@@ -21,13 +21,15 @@ import java.util.Optional;
 @AllArgsConstructor
 @Service
 public class PixService {
+
     private EventPixRepository eventPixRepository;
     private WalletsService walletsService;
     private TransactionRepository transactionRepository;
 
     @Transactional
     public PixTransferResponse transfer(String idempotencyKey, PixTransferRequest request) {
-        // Verificar se já existe uma operação com a mesma idempotency key
+
+        // Verificar idempotência
         Optional<TransactionEntity> existing =
                 transactionRepository.findByEndToEndId("OUT" + idempotencyKey);
 
@@ -38,37 +40,43 @@ public class PixService {
             );
         }
 
-        // Buscar wallet origem
+        // Buscar carteiras
         WalletEntity fromWallet = walletsService.findById(request.fromWalletId());
-        // Busca a chave destino
         WalletEntity toWallet = walletsService.findByPixKey(request.toPixKey());
 
-        // Verificar saldo
+        // Validar saldo
         if (fromWallet.getCurrentBalance().compareTo(request.amount()) < 0) {
             throw new InsufficientBalanceException(fromWallet.getCurrentBalance());
         }
 
-        // Criar transações
-        TransactionEntity debit = new TransactionEntity();
-        debit.setWalletId(fromWallet.getId());
-        debit.setEndToEndId("OUT" + idempotencyKey);
-        debit.setAmount(request.amount().negate());
-        debit.setType(TransactionTypeEnum.PIX_TRANSFER_OUT);
-        debit.setCreatedAt(LocalDateTime.now());
-        debit.setUpdatedAt(LocalDateTime.now());
-        debit.setPixKey(toWallet.getPixKey());
-        debit.setStatus(TransactionStatusEnum.PENDING);
+        LocalDateTime now = LocalDateTime.now();
+
+        // Criar transação de débito (saída)
+        TransactionEntity debit = TransactionEntity.builder()
+                .walletId(fromWallet.getId())
+                .endToEndId("OUT" + idempotencyKey)
+                .amount(request.amount().negate())
+                .type(TransactionTypeEnum.PIX_TRANSFER_OUT)
+                .createdAt(now)
+                .updatedAt(now)
+                .pixKey(toWallet.getPixKey())
+                .status(TransactionStatusEnum.PENDING)
+                .build();
+
         transactionRepository.save(debit);
 
-        TransactionEntity credit = new TransactionEntity();
-        credit.setWalletId(toWallet.getId());
-        credit.setEndToEndId("IN" + idempotencyKey);
-        credit.setAmount(request.amount());
-        credit.setType(TransactionTypeEnum.PIX_TRANSFER_IN);
-        credit.setCreatedAt(LocalDateTime.now());
-        credit.setUpdatedAt(LocalDateTime.now());
-        credit.setPixKey(toWallet.getPixKey());
-        credit.setStatus(TransactionStatusEnum.PENDING);
+        // Criar transação de crédito (entrada)
+        TransactionEntity credit = TransactionEntity.builder()
+                .walletId(toWallet.getId())
+                .endToEndId("IN" + idempotencyKey)
+                .amount(request.amount())
+                .type(TransactionTypeEnum.PIX_TRANSFER_IN)
+                .createdAt(now)
+                .updatedAt(now)
+                .pixKey(toWallet.getPixKey())
+                .status(TransactionStatusEnum.PENDING)
+                .build();
+
         transactionRepository.save(credit);
 
         return new PixTransferResponse(idempotencyKey, TransactionStatusEnum.PENDING);
@@ -76,47 +84,52 @@ public class PixService {
 
     @Transactional
     public void processWebhook(PixWebhookRequest request) {
-        // Idempotência — se já existe, não processa de novo
-        var existing = eventPixRepository.findByEventId(request.eventId());
 
-        if (existing.isPresent()) {
+        // Idempotência via eventId
+        if (eventPixRepository.findByEventId(request.eventId()).isPresent()) {
             return;
         }
-        // Registrar evento para garantir idempotência
-        var event = new EventPixEntity();
-        var status = TransactionStatusEnum.valueOf(request.eventType());
-        event.setEventId(request.eventId());
-        event.setEndToEndId(request.endToEndId());
-        event.setEventType(status);
-        Instant instant = Instant.parse(request.occurredAt());
-        LocalDateTime occurredAt = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-        event.setOccurredAt(occurredAt);
-        event.setCreatedAt(LocalDateTime.now());
 
-        // Buscar transferência PIX pelo endToEndId
-        var debit = transactionRepository
+        // Converter data
+        LocalDateTime occurredAt = LocalDateTime
+                .ofInstant(Instant.parse(request.occurredAt()), ZoneOffset.UTC);
+
+        TransactionStatusEnum status = TransactionStatusEnum.valueOf(request.eventType());
+
+        // Criar evento PIX usando builder
+        EventPixEntity event = EventPixEntity.builder()
+                .eventId(request.eventId())
+                .endToEndId(request.endToEndId())
+                .eventType(status)
+                .occurredAt(occurredAt)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        // Buscar transações associadas
+        TransactionEntity debit = transactionRepository
                 .findByEndToEndId("OUT" + request.endToEndId())
                 .orElseThrow(PixTransferNotFoundException::new);
-        var credit = transactionRepository
+
+        TransactionEntity credit = transactionRepository
                 .findByEndToEndId("IN" + request.endToEndId())
                 .orElseThrow(PixTransferNotFoundException::new);
 
-        if (debit.getStatus() != TransactionStatusEnum.PENDING) {
+        if (debit.getStatus() != TransactionStatusEnum.PENDING ||
+                credit.getStatus() != TransactionStatusEnum.PENDING) {
             return;
         }
-        if (credit.getStatus() != TransactionStatusEnum.PENDING) {
-            return;
-        }
-        //atualiza o status das transações
+
+        // Atualizar status
         debit.setStatus(status);
         debit.setUpdatedAt(LocalDateTime.now());
+
         credit.setStatus(status);
         credit.setUpdatedAt(LocalDateTime.now());
 
-        // caso transação confirmada atualiza o balance atual das carteiras
+        // Atualizar saldos
         if (status == TransactionStatusEnum.CONFIRMED) {
-            updateBalance(debit.getAmount(), debit.getWalletId(), true);
-            updateBalance(credit.getAmount(), credit.getWalletId(), false);
+            updateBalance(debit.getAmount(), debit.getWalletId());
+            updateBalance(credit.getAmount(), credit.getWalletId());
         }
 
         transactionRepository.save(debit);
@@ -124,11 +137,9 @@ public class PixService {
         eventPixRepository.save(event);
     }
 
-    private void updateBalance(BigDecimal amount, String walletId, Boolean isOut) {
-        WalletEntity fromWallet = walletsService.findById(walletId);
-        fromWallet.setCurrentBalance(
-                fromWallet.getCurrentBalance().add(amount)
-        );
-        walletsService.save(fromWallet);
+    private void updateBalance(BigDecimal amount, String walletId) {
+        WalletEntity wallet = walletsService.findById(walletId);
+        wallet.setCurrentBalance(wallet.getCurrentBalance().add(amount));
+        walletsService.save(wallet);
     }
 }

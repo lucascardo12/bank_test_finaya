@@ -1,6 +1,7 @@
 package com.lucas_cm.bank_test.domain.entities;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
+@Builder
 @Table(name = "transaction")
 public class TransactionEntity {
     @Id
