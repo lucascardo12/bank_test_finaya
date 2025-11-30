@@ -6,12 +6,14 @@ import com.lucas_cm.bank_test.domain.services.WalletsService;
 import com.lucas_cm.bank_test.infrastructure.dtos.CreateWalletDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.GetBalanceDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.RegisterPixKeyDto;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/wallets")
+@Tag(name = "Wallets")
 public class WalletController {
     WalletsService walletsService;
 
