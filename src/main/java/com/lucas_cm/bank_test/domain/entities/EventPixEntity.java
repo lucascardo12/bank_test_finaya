@@ -15,12 +15,13 @@ public class EventPixEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, unique = true, nullable = false)
     private Long id;
-    @Column(name = "event_id", nullable = false, unique = true)
+    @Column(name = "event_id", nullable = false, unique = true)// idempotência
     private String eventId;
+    @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false)
-    private String eventType;
+    private TransactionStatusEnum eventType;
     @Column(name = "occurred_at", nullable = false)
-    private String occurredAt;
+    private LocalDateTime occurredAt;
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     @Column(name = "end_to_end_id", nullable = false)

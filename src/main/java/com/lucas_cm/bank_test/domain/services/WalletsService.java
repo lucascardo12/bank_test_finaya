@@ -33,6 +33,11 @@ public class WalletsService {
         return walletRepository.save(wallet);
     }
 
+    public WalletEntity save(WalletEntity wallet) {
+        wallet.setUpdatedAt(LocalDateTime.now());
+        return walletRepository.save(wallet);
+    }
+
     public WalletEntity insertPixKey(String id, String pixKey) {
         var findWallet = walletRepository.findById(id);
         if (findWallet.isEmpty()) throw new WalletNotFoundException();
@@ -44,6 +49,12 @@ public class WalletsService {
 
     public WalletEntity findById(String id) {
         var findWallet = walletRepository.findById(id);
+        if (findWallet.isEmpty()) throw new WalletNotFoundException();
+        return findWallet.get();
+    }
+
+    public WalletEntity findByPixKey(String pixKey) {
+        var findWallet = walletRepository.findByPixKey(pixKey);
         if (findWallet.isEmpty()) throw new WalletNotFoundException();
         return findWallet.get();
     }
@@ -62,6 +73,7 @@ public class WalletsService {
         transaction.setType(TransactionTypeEnum.DEPOSIT);
         transaction.setStatus(TransactionStatusEnum.CONFIRMED);
         transaction.setCreatedAt(LocalDateTime.now());
+        transaction.setUpdatedAt(LocalDateTime.now());
         transaction.setEndToEndId(UUID.randomUUID().toString());
 
         // Salvar transação
@@ -93,6 +105,7 @@ public class WalletsService {
         transaction.setEndToEndId(UUID.randomUUID().toString());
         transaction.setStatus(TransactionStatusEnum.CONFIRMED);
         transaction.setCreatedAt(LocalDateTime.now());
+        transaction.setUpdatedAt(LocalDateTime.now());
 
         // 5. Salvar transação
         transactionService.create(transaction);
