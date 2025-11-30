@@ -5,6 +5,11 @@ import com.lucas_cm.bank_test.configuration.exception.BusinessException;
 
 public class UserAlreadyHasWalletException extends BusinessException {
     @Override
+    public String getMessage() {
+        return "O usuário já possui uma carteira cadastrada.";
+    }
+
+    @Override
     public String getErrorCode() {
         return "USER_WALLET_ALREADY_EXISTS";
     }
