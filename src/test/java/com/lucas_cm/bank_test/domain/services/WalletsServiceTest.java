@@ -215,7 +215,7 @@ class WalletsServiceTest {
         BigDecimal depositAmount = new BigDecimal("200.00");
         BigDecimal expectedBalance = initialBalance.add(depositAmount);
 
-        when(walletRepository.findById(walletId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(walletEntity));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
             WalletEntity wallet = invocation.getArgument(0);
             return wallet;
@@ -243,7 +243,7 @@ class WalletsServiceTest {
         assertThat(createdTransaction.getStatus()).isEqualTo(TransactionStatusEnum.CONFIRMED);
         assertThat(createdTransaction.getEndToEndId()).isNotNull();
 
-        verify(walletRepository).findById(walletId);
+        verify(walletRepository).findByIdWithLock(walletId);
         verify(walletRepository).save(any(WalletEntity.class));
     }
 
@@ -252,13 +252,13 @@ class WalletsServiceTest {
     void dado_walletid_inexistente_quando_realizar_deposito_entao_deve_lancar_excecao() {
         // Given - Dado que a carteira não existe
         BigDecimal depositAmount = new BigDecimal("200.00");
-        when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.empty());
 
         // When/Then - Quando realizar o depósito, então deve lançar exceção
         assertThatThrownBy(() -> walletsService.deposit(walletId, depositAmount))
                 .isInstanceOf(WalletNotFoundException.class);
 
-        verify(walletRepository).findById(walletId);
+        verify(walletRepository).findByIdWithLock(walletId);
         verify(transactionService, never()).create(any(TransactionEntity.class));
         verify(walletRepository, never()).save(any(WalletEntity.class));
     }
@@ -270,7 +270,7 @@ class WalletsServiceTest {
         BigDecimal withdrawAmount = new BigDecimal("300.00");
         BigDecimal expectedBalance = initialBalance.subtract(withdrawAmount);
 
-        when(walletRepository.findById(walletId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(walletEntity));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
             WalletEntity wallet = invocation.getArgument(0);
             return wallet;
@@ -298,7 +298,7 @@ class WalletsServiceTest {
         assertThat(createdTransaction.getStatus()).isEqualTo(TransactionStatusEnum.CONFIRMED);
         assertThat(createdTransaction.getEndToEndId()).isNotNull();
 
-        verify(walletRepository).findById(walletId);
+        verify(walletRepository).findByIdWithLock(walletId);
         verify(walletRepository).save(any(WalletEntity.class));
     }
 
@@ -308,7 +308,7 @@ class WalletsServiceTest {
         // Given - Dado um valor de saque maior que o saldo
         BigDecimal withdrawAmount = new BigDecimal("2000.00");
 
-        when(walletRepository.findById(walletId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(walletEntity));
 
         // When/Then - Quando realizar o saque, então deve lançar exceção
         assertThatThrownBy(() -> walletsService.withdraw(walletId, withdrawAmount))
@@ -318,7 +318,7 @@ class WalletsServiceTest {
                     assertThat(ex.getData()).isNotNull();
                 });
 
-        verify(walletRepository).findById(walletId);
+        verify(walletRepository).findByIdWithLock(walletId);
         verify(transactionService, never()).create(any(TransactionEntity.class));
         verify(walletRepository, never()).save(any(WalletEntity.class));
     }
@@ -330,7 +330,7 @@ class WalletsServiceTest {
         BigDecimal withdrawAmount = initialBalance;
         BigDecimal expectedBalance = BigDecimal.ZERO;
 
-        when(walletRepository.findById(walletId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(walletEntity));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
             WalletEntity wallet = invocation.getArgument(0);
             return wallet;
@@ -346,7 +346,7 @@ class WalletsServiceTest {
         // Then - Então deve permitir o saque e zerar o saldo
         assertThat(result).isNotNull();
         assertThat(result.getCurrentBalance()).isEqualByComparingTo(expectedBalance);
-        verify(walletRepository).findById(walletId);
+        verify(walletRepository).findByIdWithLock(walletId);
         verify(transactionService).create(any(TransactionEntity.class));
         verify(walletRepository).save(any(WalletEntity.class));
     }
@@ -356,13 +356,13 @@ class WalletsServiceTest {
     void dado_walletid_inexistente_quando_realizar_saque_entao_deve_lancar_excecao() {
         // Given - Dado que a carteira não existe
         BigDecimal withdrawAmount = new BigDecimal("100.00");
-        when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.empty());
 
         // When/Then - Quando realizar o saque, então deve lançar exceção
         assertThatThrownBy(() -> walletsService.withdraw(walletId, withdrawAmount))
                 .isInstanceOf(WalletNotFoundException.class);
 
-        verify(walletRepository).findById(walletId);
+        verify(walletRepository).findByIdWithLock(walletId);
         verify(transactionService, never()).create(any(TransactionEntity.class));
         verify(walletRepository, never()).save(any(WalletEntity.class));
     }
@@ -374,7 +374,7 @@ class WalletsServiceTest {
         BigDecimal depositAmount = new BigDecimal("100.00");
         LocalDateTime originalUpdatedAt = walletEntity.getUpdatedAt();
 
-        when(walletRepository.findById(walletId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(walletEntity));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
             WalletEntity wallet = invocation.getArgument(0);
             return wallet;
@@ -398,7 +398,7 @@ class WalletsServiceTest {
         BigDecimal withdrawAmount = new BigDecimal("100.00");
         LocalDateTime originalUpdatedAt = walletEntity.getUpdatedAt();
 
-        when(walletRepository.findById(walletId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(walletEntity));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
             WalletEntity wallet = invocation.getArgument(0);
             return wallet;

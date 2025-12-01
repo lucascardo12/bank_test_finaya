@@ -6,6 +6,7 @@ import com.lucas_cm.bank_test.domain.exceptions.PixTransferNotFoundException;
 import com.lucas_cm.bank_test.domain.exceptions.WalletNotFoundException;
 import com.lucas_cm.bank_test.domain.repositories.EventPixRepository;
 import com.lucas_cm.bank_test.domain.repositories.TransactionRepository;
+import com.lucas_cm.bank_test.domain.repositories.WalletRepository;
 import com.lucas_cm.bank_test.infrastructure.dtos.PixTransferRequest;
 import com.lucas_cm.bank_test.infrastructure.dtos.PixTransferResponse;
 import com.lucas_cm.bank_test.infrastructure.dtos.PixWebhookRequest;
@@ -35,10 +36,10 @@ class PixServiceTest {
     private EventPixRepository eventPixRepository;
 
     @Mock
-    private WalletsService walletsService;
+    private TransactionRepository transactionRepository;
 
     @Mock
-    private TransactionRepository transactionRepository;
+    private WalletRepository walletRepository;
 
     @InjectMocks
     private PixService pixService;
@@ -93,8 +94,8 @@ class PixServiceTest {
         // Given - Dado uma requisição válida
         when(transactionRepository.findByEndToEndId("OUT" + idempotencyKey))
                 .thenReturn(Optional.empty());
-        when(walletsService.findById(fromWalletId)).thenReturn(fromWallet);
-        when(walletsService.findByPixKey(toPixKey)).thenReturn(toWallet);
+        when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(walletRepository.findByPixKeyWithLock(toPixKey)).thenReturn(Optional.of(toWallet));
         when(transactionRepository.save(any(TransactionEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -155,8 +156,8 @@ class PixServiceTest {
         assertThat(response.status()).isEqualTo(TransactionStatusEnum.CONFIRMED);
 
         verify(transactionRepository).findByEndToEndId("OUT" + idempotencyKey);
-        verify(walletsService, never()).findById(any());
-        verify(walletsService, never()).findByPixKey(any());
+        verify(walletRepository, never()).findByIdWithLock(any());
+        verify(walletRepository, never()).findByPixKeyWithLock(any());
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
     }
 
@@ -167,15 +168,15 @@ class PixServiceTest {
         fromWallet.setCurrentBalance(new BigDecimal("50.00"));
         when(transactionRepository.findByEndToEndId("OUT" + idempotencyKey))
                 .thenReturn(Optional.empty());
-        when(walletsService.findById(fromWalletId)).thenReturn(fromWallet);
-        when(walletsService.findByPixKey(toPixKey)).thenReturn(toWallet);
+        when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(walletRepository.findByPixKeyWithLock(toPixKey)).thenReturn(Optional.of(toWallet));
 
         // When/Then - Quando transferir, então deve lançar exceção
         assertThatThrownBy(() -> pixService.transfer(idempotencyKey, transferRequest))
                 .isInstanceOf(InsufficientBalanceException.class);
 
-        verify(walletsService).findById(fromWalletId);
-        verify(walletsService).findByPixKey(toPixKey);
+        verify(walletRepository).findByIdWithLock(fromWalletId);
+        verify(walletRepository).findByPixKeyWithLock(toPixKey);
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
     }
 
@@ -185,15 +186,15 @@ class PixServiceTest {
         // Given - Dado que a carteira de origem não existe
         when(transactionRepository.findByEndToEndId("OUT" + idempotencyKey))
                 .thenReturn(Optional.empty());
-        when(walletsService.findById(fromWalletId))
-                .thenThrow(new WalletNotFoundException());
+        when(walletRepository.findByIdWithLock(fromWalletId))
+                .thenReturn(Optional.empty());
 
         // When/Then - Quando transferir, então deve lançar exceção
         assertThatThrownBy(() -> pixService.transfer(idempotencyKey, transferRequest))
                 .isInstanceOf(WalletNotFoundException.class);
 
-        verify(walletsService).findById(fromWalletId);
-        verify(walletsService, never()).findByPixKey(any());
+        verify(walletRepository).findByIdWithLock(fromWalletId);
+        verify(walletRepository, never()).findByPixKeyWithLock(any());
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
     }
 
@@ -203,16 +204,16 @@ class PixServiceTest {
         // Given - Dado que a chave PIX de destino não existe
         when(transactionRepository.findByEndToEndId("OUT" + idempotencyKey))
                 .thenReturn(Optional.empty());
-        when(walletsService.findById(fromWalletId)).thenReturn(fromWallet);
-        when(walletsService.findByPixKey(toPixKey))
-                .thenThrow(new WalletNotFoundException());
+        when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(walletRepository.findByPixKeyWithLock(toPixKey))
+                .thenReturn(Optional.empty());
 
         // When/Then - Quando transferir, então deve lançar exceção
         assertThatThrownBy(() -> pixService.transfer(idempotencyKey, transferRequest))
                 .isInstanceOf(WalletNotFoundException.class);
 
-        verify(walletsService).findById(fromWalletId);
-        verify(walletsService).findByPixKey(toPixKey);
+        verify(walletRepository).findByIdWithLock(fromWalletId);
+        verify(walletRepository).findByPixKeyWithLock(toPixKey);
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
     }
 
@@ -262,8 +263,9 @@ class PixServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(eventPixRepository.save(any(EventPixEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(walletsService.findById(any())).thenReturn(fromWallet, toWallet);
-        when(walletsService.save(any(WalletEntity.class)))
+        when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(walletRepository.findByIdWithLock(toWalletId)).thenReturn(Optional.of(toWallet));
+        when(walletRepository.save(any(WalletEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When - Quando processar o webhook
@@ -276,8 +278,8 @@ class PixServiceTest {
         verify(transactionRepository).save(debit);
         verify(transactionRepository).save(credit);
         verify(eventPixRepository).save(any(EventPixEntity.class));
-        verify(walletsService, times(2)).findById(any());
-        verify(walletsService, times(2)).save(any(WalletEntity.class));
+        verify(walletRepository, times(2)).findByIdWithLock(any());
+        verify(walletRepository, times(2)).save(any(WalletEntity.class));
     }
 
     @Test
@@ -337,8 +339,8 @@ class PixServiceTest {
         verify(transactionRepository).save(debit);
         verify(transactionRepository).save(credit);
         verify(eventPixRepository).save(any(EventPixEntity.class));
-        verify(walletsService, never()).findById(any());
-        verify(walletsService, never()).save(any(WalletEntity.class));
+        verify(walletRepository, never()).findByIdWithLock(any());
+        verify(walletRepository, never()).save(any(WalletEntity.class));
     }
 
     @Test
@@ -450,8 +452,8 @@ class PixServiceTest {
         // Then - Então deve retornar sem atualizar
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
         verify(eventPixRepository, never()).save(any(EventPixEntity.class));
-        verify(walletsService, never()).findById(any());
-        verify(walletsService, never()).save(any(WalletEntity.class));
+        verify(walletRepository, never()).findByIdWithLock(any());
+        verify(walletRepository, never()).save(any(WalletEntity.class));
     }
 
     @Test
@@ -511,8 +513,8 @@ class PixServiceTest {
         verify(transactionRepository).save(debit);
         verify(transactionRepository).save(credit);
         verify(eventPixRepository).save(any(EventPixEntity.class));
-        verify(walletsService, never()).findById(any());
-        verify(walletsService, never()).save(any(WalletEntity.class));
+        verify(walletRepository, never()).findByIdWithLock(any());
+        verify(walletRepository, never()).save(any(WalletEntity.class));
     }
 
     @Test
@@ -522,8 +524,8 @@ class PixServiceTest {
         fromWallet.setCurrentBalance(transferAmount);
         when(transactionRepository.findByEndToEndId("OUT" + idempotencyKey))
                 .thenReturn(Optional.empty());
-        when(walletsService.findById(fromWalletId)).thenReturn(fromWallet);
-        when(walletsService.findByPixKey(toPixKey)).thenReturn(toWallet);
+        when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(walletRepository.findByPixKeyWithLock(toPixKey)).thenReturn(Optional.of(toWallet));
         when(transactionRepository.save(any(TransactionEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -534,6 +536,112 @@ class PixServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.status()).isEqualTo(TransactionStatusEnum.PENDING);
         verify(transactionRepository, times(2)).save(any(TransactionEntity.class));
+    }
+
+    @Test
+    @DisplayName("Dado um webhook REJECTED tentando sobrescrever CONFIRMED, quando processar webhook, então deve ignorar")
+    void dado_webhook_rejected_sobrescrevendo_confirmed_quando_processar_entao_deve_ignorar() {
+        // Given - Dado que a transação já está CONFIRMED e recebe REJECTED
+        String endToEndId = "E2E123456789";
+        String eventId = "event-reject-after-confirm";
+
+        PixWebhookRequest webhookRequest = new PixWebhookRequest(
+                endToEndId,
+                eventId,
+                "REJECTED",
+                "2025-01-01T10:00:00Z"
+        );
+
+        TransactionEntity debit = TransactionEntity.builder()
+                .id(1L)
+                .walletId(fromWalletId)
+                .endToEndId("OUT" + endToEndId)
+                .amount(transferAmount.negate())
+                .type(TransactionTypeEnum.PIX_TRANSFER_OUT)
+                .status(TransactionStatusEnum.CONFIRMED) // Já confirmada
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        TransactionEntity credit = TransactionEntity.builder()
+                .id(2L)
+                .walletId(toWalletId)
+                .endToEndId("IN" + endToEndId)
+                .amount(transferAmount)
+                .type(TransactionTypeEnum.PIX_TRANSFER_IN)
+                .status(TransactionStatusEnum.CONFIRMED) // Já confirmada
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
+                .thenReturn(Optional.of(debit));
+        when(transactionRepository.findByEndToEndId("IN" + endToEndId))
+                .thenReturn(Optional.of(credit));
+
+        // When - Quando processar o webhook
+        pixService.processWebhook(webhookRequest);
+
+        // Then - Então deve ignorar e não atualizar
+        assertThat(debit.getStatus()).isEqualTo(TransactionStatusEnum.CONFIRMED);
+        assertThat(credit.getStatus()).isEqualTo(TransactionStatusEnum.CONFIRMED);
+        verify(transactionRepository, never()).save(any(TransactionEntity.class));
+        verify(eventPixRepository, never()).save(any(EventPixEntity.class));
+        verify(walletRepository, never()).findByIdWithLock(any());
+    }
+
+    @Test
+    @DisplayName("Dado um webhook CONFIRMED tentando sobrescrever REJECTED, quando processar webhook, então deve ignorar")
+    void dado_webhook_confirmed_sobrescrevendo_rejected_quando_processar_entao_deve_ignorar() {
+        // Given - Dado que a transação já está REJECTED e recebe CONFIRMED
+        String endToEndId = "E2E123456789";
+        String eventId = "event-confirm-after-reject";
+
+        PixWebhookRequest webhookRequest = new PixWebhookRequest(
+                endToEndId,
+                eventId,
+                "CONFIRMED",
+                "2025-01-01T10:00:00Z"
+        );
+
+        TransactionEntity debit = TransactionEntity.builder()
+                .id(1L)
+                .walletId(fromWalletId)
+                .endToEndId("OUT" + endToEndId)
+                .amount(transferAmount.negate())
+                .type(TransactionTypeEnum.PIX_TRANSFER_OUT)
+                .status(TransactionStatusEnum.REJECTED) // Já rejeitada
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        TransactionEntity credit = TransactionEntity.builder()
+                .id(2L)
+                .walletId(toWalletId)
+                .endToEndId("IN" + endToEndId)
+                .amount(transferAmount)
+                .type(TransactionTypeEnum.PIX_TRANSFER_IN)
+                .status(TransactionStatusEnum.REJECTED) // Já rejeitada
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
+                .thenReturn(Optional.of(debit));
+        when(transactionRepository.findByEndToEndId("IN" + endToEndId))
+                .thenReturn(Optional.of(credit));
+
+        // When - Quando processar o webhook
+        pixService.processWebhook(webhookRequest);
+
+        // Then - Então deve ignorar e não atualizar
+        assertThat(debit.getStatus()).isEqualTo(TransactionStatusEnum.REJECTED);
+        assertThat(credit.getStatus()).isEqualTo(TransactionStatusEnum.REJECTED);
+        verify(transactionRepository, never()).save(any(TransactionEntity.class));
+        verify(eventPixRepository, never()).save(any(EventPixEntity.class));
+        verify(walletRepository, never()).findByIdWithLock(any());
     }
 }
 

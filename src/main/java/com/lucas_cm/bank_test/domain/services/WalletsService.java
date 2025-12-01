@@ -9,6 +9,8 @@ import com.lucas_cm.bank_test.domain.exceptions.UserAlreadyHasWalletException;
 import com.lucas_cm.bank_test.domain.exceptions.WalletNotFoundException;
 import com.lucas_cm.bank_test.domain.repositories.WalletRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WalletsService {
 
     private final TransactionService transactionService;
@@ -67,50 +70,83 @@ public class WalletsService {
 
     @Transactional
     public WalletEntity deposit(String walletId, BigDecimal amount) {
+        MDC.put("walletId", walletId);
+        MDC.put("amount", amount.toString());
+        MDC.put("operation", "deposit");
 
-        WalletEntity wallet = findById(walletId);
-        wallet.setCurrentBalance(wallet.getCurrentBalance().add(amount));
+        try {
+            log.info("Processando depósito");
 
-        TransactionEntity transaction = TransactionEntity.builder()
-                .walletId(wallet.getId())
-                .amount(amount)
-                .type(TransactionTypeEnum.DEPOSIT)
-                .status(TransactionStatusEnum.CONFIRMED)
-                .endToEndId(UUID.randomUUID().toString())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+            // Usar lock pessimista para prevenir race conditions
+            WalletEntity wallet = walletRepository.findByIdWithLock(walletId)
+                    .orElseThrow(() -> {
+                        log.error("Carteira não encontrada para depósito");
+                        return new WalletNotFoundException();
+                    });
 
-        transactionService.create(transaction);
-        walletRepository.save(wallet);
+            wallet.setCurrentBalance(wallet.getCurrentBalance().add(amount));
 
-        return wallet;
+            TransactionEntity transaction = TransactionEntity.builder()
+                    .walletId(wallet.getId())
+                    .amount(amount)
+                    .type(TransactionTypeEnum.DEPOSIT)
+                    .status(TransactionStatusEnum.CONFIRMED)
+                    .endToEndId(UUID.randomUUID().toString())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            transactionService.create(transaction);
+            walletRepository.save(wallet);
+
+            log.info("Depósito processado com sucesso. Novo saldo: {}", wallet.getCurrentBalance());
+            return wallet;
+        } finally {
+            MDC.clear();
+        }
     }
 
     @Transactional
     public WalletEntity withdraw(String walletId, BigDecimal amount) {
+        MDC.put("walletId", walletId);
+        MDC.put("amount", amount.toString());
+        MDC.put("operation", "withdraw");
 
-        WalletEntity wallet = findById(walletId);
+        try {
+            log.info("Processando saque");
 
-        if (wallet.getCurrentBalance().compareTo(amount) < 0) {
-            throw new InsufficientBalanceException(wallet.getCurrentBalance());
+            // Usar lock pessimista para prevenir race conditions
+            WalletEntity wallet = walletRepository.findByIdWithLock(walletId)
+                    .orElseThrow(() -> {
+                        log.error("Carteira não encontrada para saque");
+                        return new WalletNotFoundException();
+                    });
+
+            // Validar saldo (com lock já aplicado, garantindo consistência)
+            if (wallet.getCurrentBalance().compareTo(amount) < 0) {
+                log.warn("Saldo insuficiente para saque. Saldo atual: {}", wallet.getCurrentBalance());
+                throw new InsufficientBalanceException(wallet.getCurrentBalance());
+            }
+
+            wallet.setCurrentBalance(wallet.getCurrentBalance().subtract(amount));
+
+            TransactionEntity transaction = TransactionEntity.builder()
+                    .walletId(wallet.getId())
+                    .amount(amount.negate())
+                    .type(TransactionTypeEnum.WITHDRAW)
+                    .status(TransactionStatusEnum.CONFIRMED)
+                    .endToEndId(UUID.randomUUID().toString())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            transactionService.create(transaction);
+            walletRepository.save(wallet);
+
+            log.info("Saque processado com sucesso. Novo saldo: {}", wallet.getCurrentBalance());
+            return wallet;
+        } finally {
+            MDC.clear();
         }
-
-        wallet.setCurrentBalance(wallet.getCurrentBalance().subtract(amount));
-
-        TransactionEntity transaction = TransactionEntity.builder()
-                .walletId(wallet.getId())
-                .amount(amount.negate())
-                .type(TransactionTypeEnum.WITHDRAW)
-                .status(TransactionStatusEnum.CONFIRMED)
-                .endToEndId(UUID.randomUUID().toString())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        transactionService.create(transaction);
-        walletRepository.save(wallet);
-
-        return wallet;
     }
 }

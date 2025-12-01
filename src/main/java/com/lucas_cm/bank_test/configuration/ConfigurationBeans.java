@@ -27,10 +27,10 @@ public class ConfigurationBeans {
 
     @Bean
     public PixService pixService(EventPixRepository eventPixRepository,
-                                 WalletsService walletsService,
-                                 TransactionRepository transactionRepository
+                                 TransactionRepository transactionRepository,
+                                 WalletRepository walletRepository
     ) {
-        return new PixService(eventPixRepository, walletsService, transactionRepository);
+        return new PixService(eventPixRepository, transactionRepository, walletRepository);
     }
 
     @Bean

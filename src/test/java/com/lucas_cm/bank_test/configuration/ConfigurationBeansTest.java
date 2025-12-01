@@ -65,14 +65,12 @@ class ConfigurationBeansTest {
     void dado_dependencias_validas_quando_criar_pix_service_entao_deve_retornar_instancia_correta() {
         // Given - Dado dependências válidas
         configurationBeans = new ConfigurationBeans();
-        TransactionService transactionService = new TransactionService(transactionRepository);
-        WalletsService walletsService = new WalletsService(transactionService, walletRepository);
 
         // When - Quando criar PixService
         PixService result = configurationBeans.pixService(
                 eventPixRepository,
-                walletsService,
-                transactionRepository
+                transactionRepository,
+                walletRepository
         );
 
         // Then - Então deve retornar instância correta
@@ -101,9 +99,7 @@ class ConfigurationBeansTest {
     void dado_pix_service_valido_quando_criar_pix_controller_entao_deve_retornar_instancia_correta() {
         // Given - Dado PixService válido
         configurationBeans = new ConfigurationBeans();
-        TransactionService transactionService = new TransactionService(transactionRepository);
-        WalletsService walletsService = new WalletsService(transactionService, walletRepository);
-        PixService pixService = new PixService(eventPixRepository, walletsService, transactionRepository);
+        PixService pixService = new PixService(eventPixRepository, transactionRepository, walletRepository);
 
         // When - Quando criar PixController
         PixController result = configurationBeans.pixController(pixService);
@@ -124,8 +120,8 @@ class ConfigurationBeansTest {
         WalletsService walletsService = configurationBeans.walletsService(walletRepository, transactionService);
         PixService pixService = configurationBeans.pixService(
                 eventPixRepository,
-                walletsService,
-                transactionRepository
+                transactionRepository,
+                walletRepository
         );
         WalletController walletController = configurationBeans.walletController(walletsService, transactionService);
         PixController pixController = configurationBeans.pixController(pixService);

@@ -671,7 +671,8 @@ O projeto segue uma arquitetura em camadas bem definida, separando responsabilid
 - ✅ Implementado via `PixService.processWebhook()`
 - ✅ Idempotência garantida por `eventId` único
 - ✅ Atualização de saldos apenas quando `CONFIRMED`
-- ✅ Suporte a eventos `RECEIVED` e `CONFIRMED`
+- ✅ Suporte a eventos `CONFIRMED` e `REJECTED`
+- ✅ **Máquina de estados validada**: Não permite REJECTED sobrescrever CONFIRMED ou vice-versa
 
 #### **RF3: Controle de Idempotência**
 
@@ -698,18 +699,22 @@ O projeto segue uma arquitetura em camadas bem definida, separando responsabilid
 - ✅ Uso de índices únicos no banco (`endToEndId`, `eventId`, `pixKey`)
 - ✅ Transações otimizadas com `@Transactional`
 - ✅ Queries diretas para cálculo de saldo histórico
+- ⚠️ Locks pessimistas podem impactar performance em alta concorrência (trade-off necessário para consistência)
 
 #### **RNF2: Confiabilidade**
 
 - ✅ Idempotência em operações críticas
 - ✅ Validações de negócio (saldo insuficiente, carteira não encontrada)
 - ✅ Tratamento centralizado de exceções
+- ✅ **Locks pessimistas** em operações críticas para prevenir race conditions
+- ✅ **Máquina de estados** validada para evitar transições inválidas
 
 #### **RNF3: Manutenibilidade**
 
 - ✅ Separação clara de responsabilidades
 - ✅ Código testável e coberto por testes
 - ✅ Uso de Lombok para reduzir boilerplate
+- ✅ **Logs estruturados** com MDC (endToEndId, eventId, idempotencyKey) para rastreabilidade
 
 #### **RNF4: Escalabilidade**
 
@@ -783,20 +788,26 @@ para processamento assíncrono.
 
 ### 4. **Validação de Saldo: Otimista vs Pessimista**
 
-**Decisão:** Validação otimista (check-then-act)
+**Decisão:** Validação pessimista com locks (`SELECT FOR UPDATE`)
 
 **Motivo:**
 
-- ✅ Performance: Não bloqueia outras operações
-- ✅ Simplicidade: Código mais direto
+- ✅ Consistência: Garante que não haverá race conditions
+- ✅ Segurança: Previne saldos negativos mesmo em alta concorrência
+- ✅ Confiabilidade: Operações críticas são protegidas
+
+**Implementação:**
+
+- Locks pessimistas aplicados em `PixService.transfer()` e `WalletsService.withdraw()`
+- Métodos `findByIdWithLock()` e `findByPixKeyWithLock()` no `WalletRepository`
+- Uso de `@Lock(LockModeType.PESSIMISTIC_WRITE)` do JPA
 
 **Trade-off:**
 
-- ⚠️ Race conditions: Em alta concorrência, pode haver saldo negativo
-- ⚠️ Consistência: Requer locks ou versionamento
+- ⚠️ Performance: Pode bloquear outras operações na mesma carteira
+- ⚠️ Deadlocks: Risco de deadlock em operações complexas (mitigado por transações curtas)
 
-**Compromisso:** Para MVP, aceitável. Em produção, implementar locks pessimistas ou versionamento otimista (optimistic
-locking) na entidade Wallet.
+**Compromisso:** Para garantir consistência em operações financeiras críticas, locks pessimistas são necessários. O impacto em performance é aceitável para o domínio financeiro.
 
 ---
 
