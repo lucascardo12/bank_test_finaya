@@ -18,6 +18,7 @@ Este projeto simula um sistema simplificado de carteiras digitais com suporte a:
 - [Instalação e Execução](#-instalação-e-execução)
 - [Testes](#-testes)
 - [Swagger/OpenAPI](#-swaggeropenapi)
+- [Spring Boot Actuator](#-spring-boot-actuator)
 - [Decisões de Design](#-decisões-de-design)
 - [Trade-offs e Compromissos](#-trade-offs-e-compromissos)
 - [Tecnologias](#-tecnologias)
@@ -199,6 +200,8 @@ Idempotente por `eventId`. Simula a confirmação do Banco Central no fluxo PIX.
 5. **Acesse a aplicação:**
     - API: `http://localhost:8080`
     - Swagger UI: `http://localhost:8080/swagger-ui.html`
+    - Actuator Health: `http://localhost:8080/actuator/health`
+    - Actuator Metrics: `http://localhost:8080/actuator/metrics`
 
 ### Opção 2: PostgreSQL Local
 
@@ -425,6 +428,89 @@ Após iniciar a aplicação, acesse:
 4. Preencha os parâmetros e body
 5. Execute a requisição
 6. Veja a resposta em tempo real
+
+---
+
+## 🔍 Spring Boot Actuator
+
+O projeto utiliza o **Spring Boot Actuator** para monitoramento e gerenciamento da aplicação.
+
+### Acessar Endpoints do Actuator
+
+Após iniciar a aplicação, os seguintes endpoints estarão disponíveis:
+
+- **Health Check:** `http://localhost:8080/actuator/health`
+- **Info:** `http://localhost:8080/actuator/info`
+- **Metrics:** `http://localhost:8080/actuator/metrics`
+- **Prometheus:** `http://localhost:8080/actuator/prometheus`
+
+### Endpoints Disponíveis
+
+#### **Health Check** (`/actuator/health`)
+
+Verifica o status de saúde da aplicação, incluindo:
+
+- Status geral da aplicação
+- Status do banco de dados
+- Outros componentes configurados
+
+**Exemplo de resposta:**
+
+```json
+{
+  "status": "UP",
+  "components": {
+    "db": {
+      "status": "UP",
+      "details": {
+        "database": "PostgreSQL",
+        "validationQuery": "isValid()"
+      }
+    }
+  }
+}
+```
+
+#### **Info** (`/actuator/info`)
+
+Retorna informações sobre a aplicação (configurável via `application.properties`).
+
+#### **Metrics** (`/actuator/metrics`)
+
+Lista todas as métricas disponíveis. Para acessar uma métrica específica:
+
+- `http://localhost:8080/actuator/metrics/{metricName}`
+
+**Exemplos de métricas:**
+
+- `http.server.requests` - Requisições HTTP
+- `jvm.memory.used` - Uso de memória JVM
+- `process.cpu.usage` - Uso de CPU
+- `hikaricp.connections.*` - Métricas do pool de conexões HikariCP
+  - `hikaricp.connections.active` - Conexões ativas
+  - `hikaricp.connections.idle` - Conexões ociosas
+  - `hikaricp.connections.pending` - Conexões pendentes
+  - `hikaricp.connections.timeout` - Timeouts de conexão
+- `hibernate.*` - Métricas do Hibernate (queries, transações, etc.)
+  - `hibernate.entities.*` - Estatísticas de entidades
+  - `hibernate.query.*` - Estatísticas de queries
+  - `hibernate.transaction.*` - Estatísticas de transações
+
+#### **Prometheus** (`/actuator/prometheus`)
+
+Retorna métricas no formato Prometheus para integração com sistemas de monitoramento.
+
+### Configuração
+
+Os endpoints do Actuator estão configurados em `application.properties`:
+
+```properties
+management.endpoints.web.exposure.include=health,info,metrics,prometheus
+management.endpoint.health.show-details=when-authorized
+management.info.env.enabled=true
+# Habilitar estatísticas do Hibernate para métricas do banco de dados
+spring.jpa.properties.hibernate.generate_statistics=true
+```
 
 ---
 
@@ -655,6 +741,7 @@ perfil H2 opcional.
 - **Java 21** - Linguagem de programação
 - **Spring Boot 3.5.8** - Framework principal
 - **Spring Data JPA** - Persistência de dados
+- **Spring Boot Actuator** - Monitoramento e gerenciamento da aplicação
 - **PostgreSQL 15** - Banco de dados relacional
 - **Gradle** - Gerenciador de dependências
 - **Lombok** - Redução de boilerplate
