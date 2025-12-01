@@ -1,0 +1,143 @@
+{
+	"info": {
+		"_postman_id": "3ea54570-8e76-4a0c-b9aa-e3154b6d4a8a",
+		"name": "bank_test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25011970"
+	},
+	"item": [
+		{
+			"name": "pix",
+			"item": [
+				{
+					"name": "pix webhook",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"endToEndId\": \"{{endToEndId}}\",\r\n  \"eventId\": \"{{endToEndId}}\",\r\n  \"eventType\": \"CONFIRMED\",\r\n  \"occurredAt\": \"2025-10-09T15:00:00Z\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/pix/webhook",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"pix",
+								"webhook"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "pix transfers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Setando campos\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.environment.set(\"endToEndId\", jsonData.endToEndId);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Idempotency-Key",
+								"value": "{{$randomUUID}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"fromWalletId\": \"{{wallet_id}}\",\r\n    \"toPixKey\": \"12345\",\r\n    \"amount\": {{$randomPrice}}\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/pix/transfers",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"pix",
+								"transfers"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "wallets",
+			"item": [
+				{
+					"name": "get balance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/wallets/{{wallet_id}}/balance",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"wallets",
+								"{{wallet_id}}",
+								"balance"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "withdraw",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"amount\": {{$randomPrice}}\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/wallets/{{wallet_id}}/withdraw",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"wallets",
+								"{{wallet_id}}",
+								"withdraw"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

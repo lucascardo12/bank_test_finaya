@@ -18,6 +18,7 @@ Este projeto simula um sistema simplificado de carteiras digitais com suporte a:
 - [Instalação e Execução](#-instalação-e-execução)
 - [Testes](#-testes)
 - [Swagger/OpenAPI](#-swaggeropenapi)
+- [Postman Collection](#-postman-collection)
 - [Spring Boot Actuator](#-spring-boot-actuator)
 - [Decisões de Design](#-decisões-de-design)
 - [Trade-offs e Compromissos](#-trade-offs-e-compromissos)
@@ -428,6 +429,109 @@ Após iniciar a aplicação, acesse:
 4. Preencha os parâmetros e body
 5. Execute a requisição
 6. Veja a resposta em tempo real
+
+---
+
+## 📮 Postman Collection
+
+O projeto inclui uma **collection do Postman** com todas as requisições necessárias para testar a API de forma rápida e organizada.
+
+### Importar Collection e Environment
+
+1. **Abra o Postman**
+
+2. **Importe a Collection:**
+   - Clique em **Import** no canto superior esquerdo
+   - Selecione o arquivo `postman/bank_test.postman_collection.json`
+   - A collection será importada com todas as requisições organizadas em pastas
+
+3. **Importe o Environment:**
+   - Clique em **Import** novamente
+   - Selecione o arquivo `postman/dev.postman_environment.json`
+   - O environment será importado com as variáveis necessárias
+
+4. **Configure o Environment:**
+   - Selecione o environment **"dev"** no canto superior direito
+   - Configure a variável `url` com o endereço da API:
+     - **Desenvolvimento local:** `http://localhost:8080`
+     - **Outros ambientes:** ajuste conforme necessário
+
+### Estrutura da Collection
+
+A collection está organizada em duas pastas principais:
+
+#### **📁 PIX**
+- **PIX Transfers** (`POST /pix/transfers`)
+  - Cria uma transferência PIX
+  - Gera automaticamente um `Idempotency-Key` único
+  - Usa valores aleatórios para `amount`
+  - **Script automático:** Salva o `endToEndId` retornado na variável de ambiente
+
+- **PIX Webhook** (`POST /pix/webhook`)
+  - Simula a confirmação do arranjo PIX
+  - Usa o `endToEndId` salvo automaticamente pela requisição anterior
+
+#### **📁 Wallets**
+- **Get Balance** (`GET /wallets/{id}/balance`)
+  - Consulta o saldo de uma carteira
+  - Usa a variável `wallet_id` do environment
+
+- **Withdraw** (`POST /wallets/{id}/withdraw`)
+  - Realiza um saque da carteira
+  - Usa valores aleatórios para `amount`
+
+### Variáveis de Environment
+
+O environment **"dev"** contém as seguintes variáveis:
+
+| Variável | Descrição | Exemplo |
+|----------|-----------|---------|
+| `url` | URL base da API | `http://localhost:8080` |
+| `wallet_id` | ID da carteira para testes | (preencher manualmente) |
+| `endToEndId` | ID da transferência PIX | (preenchido automaticamente) |
+
+### Fluxo de Teste Recomendado
+
+1. **Criar uma carteira** (usando Swagger ou curl):
+   ```bash
+   curl -X POST http://localhost:8080/wallets \
+     -H "Content-Type: application/json" \
+     -d '{"userId": "user1"}'
+   ```
+
+2. **Configurar o `wallet_id` no Postman:**
+   - Copie o `id` retornado na resposta
+   - No Postman, edite o environment "dev"
+   - Cole o ID na variável `wallet_id`
+
+3. **Registrar uma chave PIX** (usando Swagger ou curl):
+   ```bash
+   curl -X POST http://localhost:8080/wallets/{wallet_id}/pix-keys \
+     -H "Content-Type: application/json" \
+     -d '{"key": "pix-key-123"}'
+   ```
+
+4. **Fazer um depósito** (usando Swagger ou curl):
+   ```bash
+   curl -X POST http://localhost:8080/wallets/{wallet_id}/deposit \
+     -H "Content-Type: application/json" \
+     -d '{"amount": 500.00}'
+   ```
+
+5. **Testar com a Collection do Postman:**
+   - Execute **"PIX Transfers"** para criar uma transferência
+   - O `endToEndId` será salvo automaticamente
+   - Execute **"PIX Webhook"** para confirmar a transferência
+   - Use **"Get Balance"** para verificar o saldo atualizado
+   - Use **"Withdraw"** para testar saques
+
+### Vantagens da Collection
+
+- ✅ **Organização:** Todas as requisições em um só lugar
+- ✅ **Automação:** Scripts salvam variáveis automaticamente
+- ✅ **Valores aleatórios:** Gera dados de teste automaticamente
+- ✅ **Facilidade:** Não precisa digitar URLs e headers manualmente
+- ✅ **Reutilização:** Pode ser compartilhada com a equipe
 
 ---
 
