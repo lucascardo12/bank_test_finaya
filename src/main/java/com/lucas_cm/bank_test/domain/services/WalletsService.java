@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -149,5 +151,18 @@ public class WalletsService {
         } finally {
             MDC.clear();
         }
+    }
+
+    public BigDecimal getBalance(String id, String at) {
+        var wallet = findById(id);
+        if (at == null) {
+            return wallet.getCurrentBalance();
+        }
+        // Converte string ISO com Z → Instant
+        Instant instant = Instant.parse(at);
+
+        // Converte Instant → LocalDateTime (UTC ou outra timezone)
+        LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+        return transactionService.amountByWalletIdAndDate(id, dateTime);
     }
 }

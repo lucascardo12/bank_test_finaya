@@ -2,7 +2,6 @@ package com.lucas_cm.bank_test.infrastructure.controllers;
 
 
 import com.lucas_cm.bank_test.domain.entities.WalletEntity;
-import com.lucas_cm.bank_test.domain.services.TransactionService;
 import com.lucas_cm.bank_test.domain.services.WalletsService;
 import com.lucas_cm.bank_test.infrastructure.dtos.CreateWalletDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.DepositDto;
@@ -12,17 +11,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-
 @RestController
 @RequestMapping("/wallets")
 @Tag(name = "Wallets")
 @RequiredArgsConstructor
 public class WalletController {
     private final WalletsService walletsService;
-    private final TransactionService transactionService;
 
     @PostMapping
     WalletEntity createWallet(@RequestBody final CreateWalletDto body) {
@@ -40,16 +34,7 @@ public class WalletController {
             @RequestParam(required = false)
             String at
     ) {
-        var wallet = walletsService.findById(id);
-        if (at == null) {
-            return new GetBalanceDto(wallet.getId(), wallet.getCurrentBalance());
-        }
-        // Converte string ISO com Z → Instant
-        Instant instant = Instant.parse(at);
-
-        // Converte Instant → LocalDateTime (UTC ou outra timezone)
-        LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-        var amount = transactionService.amountByWalletIdAndDate(id, dateTime);
+        var amount = walletsService.getBalance(id, at);
         return new GetBalanceDto(id, amount);
     }
 
