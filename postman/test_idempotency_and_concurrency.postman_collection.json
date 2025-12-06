@@ -1,0 +1,867 @@
+{
+    "info": {
+        "_postman_id": "test-idempotency-concurrency-001",
+        "name": "Test Idempotency and Concurrency",
+        "description": "Collection para testar idempotência e concorrência do sistema PIX",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Setup - Criar Wallets",
+            "item": [
+                {
+                    "name": "Criar Wallet Origem",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set(\"wallet_from_id\", jsonData.id);",
+                                    "    pm.environment.set(\"wallet_from_balance\", jsonData.currentBalance);",
+                                    "    console.log(\"Wallet origem criada:\", jsonData.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": \"user-test-origin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/wallets",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Criar Wallet Destino",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set(\"wallet_to_id\", jsonData.id);",
+                                    "    console.log(\"Wallet destino criada:\", jsonData.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": \"user-test-dest\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/wallets",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Registrar Chave PIX Destino",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "var pixKey = 'pix-key-test-dest-' + Date.now();",
+                                    "pm.environment.set('wallet_to_pix_key', pixKey);",
+                                    "console.log('Chave PIX gerada:', pixKey);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('wallet_to_pix_key', jsonData.pixKey);",
+                                    "    console.log('Chave PIX registrada:', jsonData.pixKey);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"key\": \"{{wallet_to_pix_key}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_to_id}}/pix-keys",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_to_id}}",
+                                "pix-keys"
+                            ]
+                        },
+                        "description": "Registra chave PIX na wallet destino"
+                    }
+                },
+                {
+                    "name": "Depositar na Wallet Origem",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set(\"wallet_from_balance\", jsonData.currentBalance);",
+                                    "    console.log(\"Depósito realizado. Novo saldo:\", jsonData.currentBalance);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 1000.00\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/deposit",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "deposit"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Idempotency",
+            "item": [
+                {
+                    "name": "Transferência PIX - Primeira Chamada",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Gerar Idempotency-Key único",
+                                    "var idempotencyKey = pm.variables.replaceIn('{{$guid}}');",
+                                    "pm.environment.set('test_idempotency_key', idempotencyKey);",
+                                    "pm.environment.set('test_transfer_amount', '100.00');",
+                                    "console.log('Idempotency-Key gerado:', idempotencyKey);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has endToEndId', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData).to.have.property('endToEndId');",
+                                    "    pm.expect(jsonData).to.have.property('status');",
+                                    "    pm.expect(jsonData.status).to.equal('PENDING');",
+                                    "    ",
+                                    "    pm.environment.set('test_end_to_end_id', jsonData.endToEndId);",
+                                    "    console.log('Primeira chamada - endToEndId:', jsonData.endToEndId);",
+                                    "});",
+                                    "",
+                                    "// Salvar saldo inicial",
+                                    "pm.sendRequest({",
+                                    "    url: pm.environment.get('url') + '/wallets/' + pm.environment.get('wallet_from_id') + '/balance',",
+                                    "    method: 'GET'",
+                                    "}, function (err, res) {",
+                                    "    if (!err) {",
+                                    "        var balance = res.json().balance;",
+                                    "        pm.environment.set('balance_before_duplicate', balance);",
+                                    "        console.log('Saldo antes da duplicata:', balance);",
+                                    "    }",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{test_idempotency_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fromWalletId\": \"{{wallet_from_id}}\",\n  \"toPixKey\": \"pix-key-test-dest-{{$timestamp}}\",\n  \"amount\": {{test_transfer_amount}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/pix/transfers",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "pix",
+                                "transfers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transferência PIX - Chamada Duplicada (Mesmo Idempotency-Key)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200 (idempotência)', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Deve retornar mesmo endToEndId', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    var firstEndToEndId = pm.environment.get('test_end_to_end_id');",
+                                    "    ",
+                                    "    pm.expect(jsonData.endToEndId).to.equal(firstEndToEndId);",
+                                    "    console.log('Chamada duplicada - endToEndId:', jsonData.endToEndId);",
+                                    "    console.log('EndToEndId da primeira chamada:', firstEndToEndId);",
+                                    "});",
+                                    "",
+                                    "pm.test('Saldo não deve ter mudado (idempotência)', function () {",
+                                    "    pm.sendRequest({",
+                                    "        url: pm.environment.get('url') + '/wallets/' + pm.environment.get('wallet_from_id') + '/balance',",
+                                    "        method: 'GET'",
+                                    "    }, function (err, res) {",
+                                    "        if (!err) {",
+                                    "            var balanceAfter = res.json().balance;",
+                                    "            var balanceBefore = parseFloat(pm.environment.get('balance_before_duplicate'));",
+                                    "            ",
+                                    "            pm.expect(balanceAfter).to.equal(balanceBefore);",
+                                    "            console.log('Saldo após duplicata:', balanceAfter);",
+                                    "            console.log('Saldo antes da duplicata:', balanceBefore);",
+                                    "            ",
+                                    "            if (balanceAfter === balanceBefore) {",
+                                    "                console.log('✅ Idempotência funcionando: saldo não mudou');",
+                                    "            } else {",
+                                    "                console.log('❌ ERRO: Saldo mudou! Idempotência falhou');",
+                                    "            }",
+                                    "        }",
+                                    "    });",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{test_idempotency_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fromWalletId\": \"{{wallet_from_id}}\",\n  \"toPixKey\": \"pix-key-test-dest-{{$timestamp}}\",\n  \"amount\": {{test_transfer_amount}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/pix/transfers",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "pix",
+                                "transfers"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Concurrency",
+            "item": [
+                {
+                    "name": "Preparar Teste de Concorrência",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Gerar múltiplos Idempotency-Keys",
+                                    "var keys = [];",
+                                    "for (var i = 0; i < 5; i++) {",
+                                    "    keys.push(pm.variables.replaceIn('{{$guid}}'));",
+                                    "}",
+                                    "pm.environment.set('concurrency_keys', JSON.stringify(keys));",
+                                    "pm.environment.set('concurrency_amount', '50.00');",
+                                    "console.log('Keys geradas para teste de concorrência:', keys);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Salvar saldo inicial",
+                                    "pm.sendRequest({",
+                                    "    url: pm.environment.get('url') + '/wallets/' + pm.environment.get('wallet_from_id') + '/balance',",
+                                    "    method: 'GET'",
+                                    "}, function (err, res) {",
+                                    "    if (!err) {",
+                                    "        var balance = res.json().balance;",
+                                    "        pm.environment.set('balance_before_concurrency', balance);",
+                                    "        console.log('Saldo antes do teste de concorrência:', balance);",
+                                    "    }",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/balance",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "balance"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transferências Concorrentes - Request 1",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "var keys = JSON.parse(pm.environment.get('concurrency_keys'));",
+                                    "pm.environment.set('concurrent_key_1', keys[0]);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Request 1 - Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set('concurrent_endtoend_1', jsonData.endToEndId);",
+                                    "console.log('Concorrente 1 - endToEndId:', jsonData.endToEndId);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{concurrent_key_1}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fromWalletId\": \"{{wallet_from_id}}\",\n  \"toPixKey\": \"{{wallet_to_pix_key}}\",\n  \"amount\": {{concurrency_amount}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/pix/transfers",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "pix",
+                                "transfers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transferências Concorrentes - Request 2",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "var keys = JSON.parse(pm.environment.get('concurrency_keys'));",
+                                    "pm.environment.set('concurrent_key_2', keys[1]);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Request 2 - Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set('concurrent_endtoend_2', jsonData.endToEndId);",
+                                    "console.log('Concorrente 2 - endToEndId:', jsonData.endToEndId);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{concurrent_key_2}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fromWalletId\": \"{{wallet_from_id}}\",\n  \"toPixKey\": \"{{wallet_to_pix_key}}\",\n  \"amount\": {{concurrency_amount}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/pix/transfers",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "pix",
+                                "transfers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transferências Concorrentes - Request 3",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "var keys = JSON.parse(pm.environment.get('concurrency_keys'));",
+                                    "pm.environment.set('concurrent_key_3', keys[2]);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Request 3 - Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set('concurrent_endtoend_3', jsonData.endToEndId);",
+                                    "console.log('Concorrente 3 - endToEndId:', jsonData.endToEndId);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "{{concurrent_key_3}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fromWalletId\": \"{{wallet_from_id}}\",\n  \"toPixKey\": \"{{wallet_to_pix_key}}\",\n  \"amount\": {{concurrency_amount}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/pix/transfers",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "pix",
+                                "transfers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Resultado da Concorrência",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Verificar saldo após concorrência', function () {",
+                                    "    pm.sendRequest({",
+                                    "        url: pm.environment.get('url') + '/wallets/' + pm.environment.get('wallet_from_id') + '/balance',",
+                                    "        method: 'GET'",
+                                    "    }, function (err, res) {",
+                                    "        if (!err) {",
+                                    "            var balanceAfter = parseFloat(res.json().balance);",
+                                    "            var balanceBefore = parseFloat(pm.environment.get('balance_before_concurrency'));",
+                                    "            var amount = parseFloat(pm.environment.get('concurrency_amount'));",
+                                    "            var expectedBalance = balanceBefore - (amount * 3); // 3 transferências",
+                                    "            ",
+                                    "            console.log('Saldo antes:', balanceBefore);",
+                                    "            console.log('Saldo após:', balanceAfter);",
+                                    "            console.log('Saldo esperado:', expectedBalance);",
+                                    "            ",
+                                    "            pm.expect(balanceAfter).to.equal(expectedBalance);",
+                                    "            ",
+                                    "            if (balanceAfter === expectedBalance) {",
+                                    "                console.log('✅ Concorrência OK: saldo correto após múltiplas transferências');",
+                                    "            } else {",
+                                    "                console.log('❌ ERRO: Saldo incorreto! Possível race condition');",
+                                    "            }",
+                                    "        }",
+                                    "    });",
+                                    "});",
+                                    "",
+                                    "pm.test('Verificar que todos os endToEndIds são diferentes', function () {",
+                                    "    var e2e1 = pm.environment.get('concurrent_endtoend_1');",
+                                    "    var e2e2 = pm.environment.get('concurrent_endtoend_2');",
+                                    "    var e2e3 = pm.environment.get('concurrent_endtoend_3');",
+                                    "    ",
+                                    "    pm.expect(e2e1).to.not.equal(e2e2);",
+                                    "    pm.expect(e2e1).to.not.equal(e2e3);",
+                                    "    pm.expect(e2e2).to.not.equal(e2e3);",
+                                    "    ",
+                                    "    console.log('✅ Todos os endToEndIds são únicos');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/balance",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "balance"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test Concurrency - Same Wallet",
+            "item": [
+                {
+                    "name": "Preparar Teste de Concorrência na Mesma Wallet",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Garantir saldo suficiente",
+                                    "pm.sendRequest({",
+                                    "    url: pm.environment.get('url') + '/wallets/' + pm.environment.get('wallet_from_id') + '/deposit',",
+                                    "    method: 'POST',",
+                                    "    header: { 'Content-Type': 'application/json' },",
+                                    "    body: { mode: 'raw', raw: JSON.stringify({ amount: 500.00 }) }",
+                                    "}, function (err, res) {",
+                                    "    if (!err) {",
+                                    "        console.log('Depósito adicional realizado');",
+                                    "    }",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Preparação - Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "// Salvar saldo inicial",
+                                    "var balanceData = pm.response.json();",
+                                    "var balance = parseFloat(balanceData.balance);",
+                                    "",
+                                    "if (!isNaN(balance)) {",
+                                    "    pm.environment.set('balance_before_concurrent_same_wallet', balance.toString());",
+                                    "    console.log('Saldo antes de saques concorrentes:', balance);",
+                                    "} else {",
+                                    "    console.log('ERRO: Não foi possível obter saldo');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/balance",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "balance"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Saque Concorrente 1",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Saque 1 - Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "console.log('Saque concorrente 1 executado');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 100.00\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/withdraw",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "withdraw"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Saque Concorrente 2",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Saque 2 - Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "console.log('Saque concorrente 2 executado');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 100.00\n}"
+                        },
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/withdraw",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "withdraw"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Saldo Após Saques Concorrentes",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Verificar saldo após saques concorrentes', function () {",
+                                    "    var responseData = pm.response.json();",
+                                    "    var balanceAfter = parseFloat(responseData.balance);",
+                                    "    ",
+                                    "    var balanceBeforeStr = pm.environment.get('balance_before_concurrent_same_wallet');",
+                                    "    var balanceBefore = parseFloat(balanceBeforeStr);",
+                                    "    ",
+                                    "    // Validações",
+                                    "    pm.expect(responseData).to.have.property('balance');",
+                                    "    pm.expect(balanceBeforeStr).to.not.be.undefined;",
+                                    "    pm.expect(balanceBeforeStr).to.not.be.empty;",
+                                    "    pm.expect(isNaN(balanceAfter)).to.be.false;",
+                                    "    pm.expect(isNaN(balanceBefore)).to.be.false;",
+                                    "    ",
+                                    "    var expectedBalance = balanceBefore - 200.00; // 2 saques de 100",
+                                    "    ",
+                                    "    console.log('Saldo antes (string):', balanceBeforeStr);",
+                                    "    console.log('Saldo antes (number):', balanceBefore);",
+                                    "    console.log('Saldo após:', balanceAfter);",
+                                    "    console.log('Saldo esperado:', expectedBalance);",
+                                    "    ",
+                                    "    pm.expect(balanceAfter).to.equal(expectedBalance);",
+                                    "    ",
+                                    "    if (balanceAfter === expectedBalance) {",
+                                    "        console.log('✅ Concorrência OK: saldo correto após saques concorrentes');",
+                                    "    } else {",
+                                    "        console.log('❌ ERRO: Saldo incorreto! Possível race condition');",
+                                    "        console.log('Diferença:', Math.abs(balanceAfter - expectedBalance));",
+                                    "    }",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{url}}/wallets/{{wallet_from_id}}/balance",
+                            "host": [
+                                "{{url}}"
+                            ],
+                            "path": [
+                                "wallets",
+                                "{{wallet_from_id}}",
+                                "balance"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "url",
+            "value": "http://localhost:8080",
+            "type": "string"
+        },
+        {
+            "key": "wallet_to_pix_key",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
