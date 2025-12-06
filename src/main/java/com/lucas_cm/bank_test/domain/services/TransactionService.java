@@ -3,7 +3,7 @@ package com.lucas_cm.bank_test.domain.services;
 import com.lucas_cm.bank_test.domain.entities.TransactionEntity;
 import com.lucas_cm.bank_test.domain.exceptions.TransactionEndToEndIdAlreadyExistsException;
 import com.lucas_cm.bank_test.domain.repositories.TransactionRepository;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 
-@AllArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class TransactionService {
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
 
     public TransactionEntity create(TransactionEntity transaction) {
         var findTransaction = transactionRepository.findByEndToEndId(transaction.getEndToEndId());

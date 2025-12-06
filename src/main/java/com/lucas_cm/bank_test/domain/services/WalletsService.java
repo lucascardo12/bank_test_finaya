@@ -19,11 +19,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class WalletsService {
 
     private final TransactionService transactionService;
+
     private final WalletRepository walletRepository;
 
     public WalletEntity create(String userId) {

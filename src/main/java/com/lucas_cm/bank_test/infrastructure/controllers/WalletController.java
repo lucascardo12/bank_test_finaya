@@ -9,7 +9,7 @@ import com.lucas_cm.bank_test.infrastructure.dtos.DepositDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.GetBalanceDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.RegisterPixKeyDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -17,12 +17,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 @RestController
-@AllArgsConstructor
 @RequestMapping("/wallets")
 @Tag(name = "Wallets")
+@RequiredArgsConstructor
 public class WalletController {
-    WalletsService walletsService;
-    TransactionService transactionService;
+    private final WalletsService walletsService;
+    private final TransactionService transactionService;
 
     @PostMapping
     WalletEntity createWallet(@RequestBody final CreateWalletDto body) {

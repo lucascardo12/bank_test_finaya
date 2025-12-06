@@ -10,7 +10,7 @@ import com.lucas_cm.bank_test.domain.repositories.WalletRepository;
 import com.lucas_cm.bank_test.infrastructure.dtos.PixTransferRequest;
 import com.lucas_cm.bank_test.infrastructure.dtos.PixTransferResponse;
 import com.lucas_cm.bank_test.infrastructure.dtos.PixWebhookRequest;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -22,14 +22,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
-@AllArgsConstructor
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class PixService {
-
-    private EventPixRepository eventPixRepository;
-    private TransactionRepository transactionRepository;
-    private WalletRepository walletRepository;
+    private final EventPixRepository eventPixRepository;
+    private final TransactionRepository transactionRepository;
+    private final WalletRepository walletRepository;
 
     @Transactional
     public PixTransferResponse transfer(String idempotencyKey, PixTransferRequest request) {
