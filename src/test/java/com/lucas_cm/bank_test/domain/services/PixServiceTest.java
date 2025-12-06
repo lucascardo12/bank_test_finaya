@@ -254,7 +254,7 @@ class PixServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.of(debit));
         when(transactionRepository.findByEndToEndId("IN" + endToEndId))
@@ -319,7 +319,7 @@ class PixServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.of(debit));
         when(transactionRepository.findByEndToEndId("IN" + endToEndId))
@@ -364,14 +364,14 @@ class PixServiceTest {
                 "2025-01-01T10:00:00Z"
         );
 
-        when(eventPixRepository.findByEventId(eventId))
-                .thenReturn(Optional.of(existingEvent));
+        when(eventPixRepository.existsByEventId(eventId))
+                .thenReturn(true);
 
         // When - Quando processar o webhook
         pixService.processWebhook(webhookRequest);
 
         // Then - Então deve retornar sem processar
-        verify(eventPixRepository).findByEventId(eventId);
+        verify(eventPixRepository).existsByEventId(eventId);
         verify(transactionRepository, never()).findByEndToEndId(any());
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
         verify(eventPixRepository, never()).save(any(EventPixEntity.class));
@@ -391,7 +391,7 @@ class PixServiceTest {
                 "2025-01-01T10:00:00Z"
         );
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.empty());
 
@@ -399,7 +399,7 @@ class PixServiceTest {
         assertThatThrownBy(() -> pixService.processWebhook(webhookRequest))
                 .isInstanceOf(PixTransferNotFoundException.class);
 
-        verify(eventPixRepository).findByEventId(eventId);
+        verify(eventPixRepository).existsByEventId(eventId);
         verify(transactionRepository).findByEndToEndId("OUT" + endToEndId);
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
     }
@@ -440,7 +440,7 @@ class PixServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.of(debit));
         when(transactionRepository.findByEndToEndId("IN" + endToEndId))
@@ -493,7 +493,7 @@ class PixServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.of(debit));
         when(transactionRepository.findByEndToEndId("IN" + endToEndId))
@@ -574,7 +574,7 @@ class PixServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.of(debit));
         when(transactionRepository.findByEndToEndId("IN" + endToEndId))
@@ -627,7 +627,7 @@ class PixServiceTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(eventPixRepository.findByEventId(eventId)).thenReturn(Optional.empty());
+        when(eventPixRepository.existsByEventId(eventId)).thenReturn(false);
         when(transactionRepository.findByEndToEndId("OUT" + endToEndId))
                 .thenReturn(Optional.of(debit));
         when(transactionRepository.findByEndToEndId("IN" + endToEndId))

@@ -123,8 +123,8 @@ public class PixService {
             log.info("Processando webhook PIX");
 
             // Idempotência via eventId
-            Optional<EventPixEntity> existingEvent = eventPixRepository.findByEventId(request.eventId());
-            if (existingEvent.isPresent()) {
+            var existingEvent = eventPixRepository.existsByEventId(request.eventId());
+            if (existingEvent) {
                 log.info("Evento já processado (idempotência), ignorando");
                 return;
             }

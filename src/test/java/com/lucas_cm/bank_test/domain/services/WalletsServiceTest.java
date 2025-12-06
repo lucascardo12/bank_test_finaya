@@ -66,7 +66,7 @@ class WalletsServiceTest {
     @DisplayName("Dado um userId válido sem carteira existente, quando criar carteira, então deve criar e retornar carteira com saldo zero")
     void dado_userid_valido_sem_carteira_quando_criar_entao_deve_criar_carteira_com_saldo_zero() {
         // Given - Dado que o usuário não possui carteira
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(walletRepository.existsByUserId(userId)).thenReturn(false);
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
             WalletEntity wallet = invocation.getArgument(0);
             wallet.setId(walletId);
@@ -82,7 +82,7 @@ class WalletsServiceTest {
         assertThat(result.getCurrentBalance()).isEqualTo(BigDecimal.ZERO);
         assertThat(result.getCreatedAt()).isNotNull();
         assertThat(result.getUpdatedAt()).isNotNull();
-        verify(walletRepository).findByUserId(userId);
+        verify(walletRepository).existsByUserId(userId);
         verify(walletRepository).save(any(WalletEntity.class));
     }
 
@@ -90,13 +90,13 @@ class WalletsServiceTest {
     @DisplayName("Dado um userId que já possui carteira, quando criar carteira, então deve lançar exceção UserAlreadyHasWalletException")
     void dado_userid_com_carteira_quando_criar_entao_deve_lancar_excecao() {
         // Given - Dado que o usuário já possui carteira
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.existsByUserId(userId)).thenReturn(true);
 
         // When/Then - Quando criar a carteira, então deve lançar exceção
         assertThatThrownBy(() -> walletsService.create(userId))
                 .isInstanceOf(UserAlreadyHasWalletException.class);
 
-        verify(walletRepository).findByUserId(userId);
+        verify(walletRepository).existsByUserId(userId);
         verify(walletRepository, never()).save(any(WalletEntity.class));
     }
 

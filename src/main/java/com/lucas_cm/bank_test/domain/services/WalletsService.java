@@ -31,8 +31,8 @@ public class WalletsService {
 
     public WalletEntity create(String userId) {
 
-        var existing = walletRepository.findByUserId(userId);
-        if (existing.isPresent()) {
+        var existing = walletRepository.existsByUserId(userId);
+        if (existing) {
             throw new UserAlreadyHasWalletException();
         }
 

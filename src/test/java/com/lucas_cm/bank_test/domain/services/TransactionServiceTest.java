@@ -63,7 +63,7 @@ class TransactionServiceTest {
     @DisplayName("Dado uma transação válida com endToEndId único, quando criar transação, então deve salvar e retornar a transação")
     void dado_transacao_valida_com_endtoendid_unico_quando_criar_entao_deve_salvar_e_retornar() {
         // Given - Dado que não existe transação com o mesmo endToEndId
-        when(transactionRepository.findByEndToEndId(endToEndId)).thenReturn(Optional.empty());
+        when(transactionRepository.existsByEndToEndId(endToEndId)).thenReturn(false);
         when(transactionRepository.save(transactionEntity)).thenReturn(transactionEntity);
 
         // When - Quando criar a transação
@@ -74,7 +74,7 @@ class TransactionServiceTest {
         assertThat(result.getEndToEndId()).isEqualTo(endToEndId);
         assertThat(result.getWalletId()).isEqualTo(walletId);
         assertThat(result.getAmount()).isEqualTo(transactionAmount);
-        verify(transactionRepository).findByEndToEndId(endToEndId);
+        verify(transactionRepository).existsByEndToEndId(endToEndId);
         verify(transactionRepository).save(transactionEntity);
     }
 
@@ -93,13 +93,13 @@ class TransactionServiceTest {
                 .updatedAt(transactionDate)
                 .build();
 
-        when(transactionRepository.findByEndToEndId(endToEndId)).thenReturn(Optional.of(existingTransaction));
+        when(transactionRepository.existsByEndToEndId(endToEndId)).thenReturn(true);
 
         // When/Then - Quando criar a transação, então deve lançar exceção
         assertThatThrownBy(() -> transactionService.create(transactionEntity))
                 .isInstanceOf(TransactionEndToEndIdAlreadyExistsException.class);
 
-        verify(transactionRepository).findByEndToEndId(endToEndId);
+        verify(transactionRepository).existsByEndToEndId(endToEndId);
         verify(transactionRepository, never()).save(any(TransactionEntity.class));
     }
 
@@ -228,7 +228,7 @@ class TransactionServiceTest {
                 .updatedAt(transactionDate)
                 .build();
 
-        when(transactionRepository.findByEndToEndId("E2E999")).thenReturn(Optional.empty());
+        when(transactionRepository.existsByEndToEndId("E2E999")).thenReturn(false);
         when(transactionRepository.save(withdrawTransaction)).thenReturn(withdrawTransaction);
 
         // When - Quando criar a transação
@@ -238,7 +238,7 @@ class TransactionServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getAmount()).isEqualTo(negativeAmount);
         assertThat(result.getType()).isEqualTo(TransactionTypeEnum.WITHDRAW);
-        verify(transactionRepository).findByEndToEndId("E2E999");
+        verify(transactionRepository).existsByEndToEndId("E2E999");
         verify(transactionRepository).save(withdrawTransaction);
     }
 
@@ -256,7 +256,7 @@ class TransactionServiceTest {
                 .updatedAt(transactionDate)
                 .build();
 
-        when(transactionRepository.findByEndToEndId("E2E888")).thenReturn(Optional.empty());
+        when(transactionRepository.existsByEndToEndId("E2E888")).thenReturn(false);
         when(transactionRepository.save(pendingTransaction)).thenReturn(pendingTransaction);
 
         // When - Quando criar a transação
@@ -266,7 +266,7 @@ class TransactionServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(TransactionStatusEnum.PENDING);
         assertThat(result.getType()).isEqualTo(TransactionTypeEnum.PIX_TRANSFER_OUT);
-        verify(transactionRepository).findByEndToEndId("E2E888");
+        verify(transactionRepository).existsByEndToEndId("E2E888");
         verify(transactionRepository).save(pendingTransaction);
     }
 
@@ -284,7 +284,7 @@ class TransactionServiceTest {
                 .updatedAt(transactionDate)
                 .build();
 
-        when(transactionRepository.findByEndToEndId("E2E777")).thenReturn(Optional.empty());
+        when(transactionRepository.existsByEndToEndId("E2E777")).thenReturn(false);
         when(transactionRepository.save(rejectedTransaction)).thenReturn(rejectedTransaction);
 
         // When - Quando criar a transação
@@ -293,7 +293,7 @@ class TransactionServiceTest {
         // Then - Então deve salvar corretamente
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(TransactionStatusEnum.REJECTED);
-        verify(transactionRepository).findByEndToEndId("E2E777");
+        verify(transactionRepository).existsByEndToEndId("E2E777");
         verify(transactionRepository).save(rejectedTransaction);
     }
 
@@ -362,7 +362,7 @@ class TransactionServiceTest {
                 .updatedAt(transactionDate)
                 .build();
 
-        when(transactionRepository.findByEndToEndId("E2E666")).thenReturn(Optional.empty());
+        when(transactionRepository.existsByEndToEndId("E2E666")).thenReturn(false);
         when(transactionRepository.save(pixTransaction)).thenReturn(pixTransaction);
 
         // When - Quando criar a transação
@@ -372,7 +372,7 @@ class TransactionServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getPixKey()).isEqualTo(pixKey);
         assertThat(result.getType()).isEqualTo(TransactionTypeEnum.PIX_TRANSFER_IN);
-        verify(transactionRepository).findByEndToEndId("E2E666");
+        verify(transactionRepository).existsByEndToEndId("E2E666");
         verify(transactionRepository).save(pixTransaction);
     }
 }

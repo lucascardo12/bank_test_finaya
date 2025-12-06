@@ -17,6 +17,8 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     Optional<TransactionEntity> findByEndToEndId(String endToEndId);
 
+    boolean existsByEndToEndId(String endToEndId);
+
     @Query("SELECT SUM(t.amount) FROM TransactionEntity t " +
             "WHERE t.walletId = :walletId " +
             "AND t.createdAt >= :at " +

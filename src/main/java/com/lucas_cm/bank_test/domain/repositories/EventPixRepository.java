@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface EventPixRepository extends JpaRepository<EventPixEntity, Long> {
     Optional<EventPixEntity> findByEventId(String eventId);
+    
+    boolean existsByEventId(String eventId);
 }

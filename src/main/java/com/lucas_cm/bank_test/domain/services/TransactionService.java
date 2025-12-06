@@ -17,8 +17,8 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
 
     public TransactionEntity create(TransactionEntity transaction) {
-        var findTransaction = transactionRepository.findByEndToEndId(transaction.getEndToEndId());
-        if (findTransaction.isPresent()) throw new TransactionEndToEndIdAlreadyExistsException();
+        var findTransaction = transactionRepository.existsByEndToEndId(transaction.getEndToEndId());
+        if (findTransaction) throw new TransactionEndToEndIdAlreadyExistsException();
         return transactionRepository.save(transaction);
     }
 

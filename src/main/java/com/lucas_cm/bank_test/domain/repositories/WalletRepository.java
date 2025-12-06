@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface WalletRepository extends JpaRepository<WalletEntity, String> {
     Optional<WalletEntity> findByUserId(String id);
 
+    boolean existsByUserId(String id);
+
     Optional<WalletEntity> findByPixKey(String id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

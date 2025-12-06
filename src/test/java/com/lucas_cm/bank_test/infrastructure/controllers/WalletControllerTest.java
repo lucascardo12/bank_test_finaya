@@ -1,7 +1,6 @@
 package com.lucas_cm.bank_test.infrastructure.controllers;
 
 import com.lucas_cm.bank_test.domain.entities.WalletEntity;
-import com.lucas_cm.bank_test.domain.services.TransactionService;
 import com.lucas_cm.bank_test.domain.services.WalletsService;
 import com.lucas_cm.bank_test.infrastructure.dtos.CreateWalletDto;
 import com.lucas_cm.bank_test.infrastructure.dtos.DepositDto;
@@ -30,9 +29,6 @@ class WalletControllerTest {
 
     @Mock
     private WalletsService walletsService;
-
-    @Mock
-    private TransactionService transactionService;
 
     @InjectMocks
     private WalletController walletController;
@@ -134,8 +130,7 @@ class WalletControllerTest {
     @DisplayName("Dado uma requisição para consultar saldo sem parâmetro de data, quando o endpoint for chamado, então deve retornar o saldo atual")
     void dado_requisicao_sem_data_quando_consultar_saldo_entao_deve_retornar_saldo_atual() {
         // Given - Dado que o serviço retorna uma carteira com saldo
-        when(walletsService.findById(walletId)).thenReturn(walletEntity);
-
+        when(walletsService.getBalance(walletId, null)).thenReturn(balance);
         // When - Quando o endpoint de consulta de saldo for chamado sem parâmetro "at"
         GetBalanceDto response = walletController.getBalance(walletId, null);
 
@@ -143,7 +138,7 @@ class WalletControllerTest {
         assertThat(response).isNotNull();
         assertThat(response.walletId()).isEqualTo(walletId);
         assertThat(response.currentBalance()).isEqualTo(balance);
-        verify(walletsService).findById(walletId);
+        verify(walletsService).getBalance(walletId, null);
     }
 
     @Test
@@ -153,8 +148,7 @@ class WalletControllerTest {
         String dateTimeString = "2025-01-01T10:00:00Z";
         BigDecimal historicalBalance = new BigDecimal("500.25");
 
-        when(transactionService.amountByWalletIdAndDate(eq(walletId), any(LocalDateTime.class)))
-                .thenReturn(historicalBalance);
+        when(walletsService.getBalance(walletId, dateTimeString)).thenReturn(historicalBalance);
 
         // When - Quando o endpoint de consulta de saldo for chamado com parâmetro "at"
         GetBalanceDto response = walletController.getBalance(walletId, dateTimeString);
@@ -163,7 +157,7 @@ class WalletControllerTest {
         assertThat(response).isNotNull();
         assertThat(response.walletId()).isEqualTo(walletId);
         assertThat(response.currentBalance()).isEqualTo(historicalBalance);
-        verify(transactionService).amountByWalletIdAndDate(eq(walletId), any(LocalDateTime.class));
+        verify(walletsService).getBalance(eq(walletId), eq(dateTimeString));
     }
 
     @Test
@@ -173,14 +167,14 @@ class WalletControllerTest {
         String dateTimeString = "2025-06-15T14:30:00Z";
         BigDecimal historicalBalance = new BigDecimal("750.00");
 
-        when(transactionService.amountByWalletIdAndDate(eq(walletId), any(LocalDateTime.class)))
+        when(walletsService.getBalance(eq(walletId), any()))
                 .thenReturn(historicalBalance);
 
         // When - Quando o endpoint de consulta de saldo for chamado
         walletController.getBalance(walletId, dateTimeString);
 
         // Then - Então deve converter a string ISO para LocalDateTime corretamente
-        verify(transactionService).amountByWalletIdAndDate(eq(walletId), any(LocalDateTime.class));
+        verify(walletsService).getBalance(eq(walletId), any());
     }
 
     @Test
@@ -265,38 +259,6 @@ class WalletControllerTest {
 
         // Then - Então deve chamar o serviço com o walletId e o valor corretos
         verify(walletsService).withdraw(walletId, withdrawAmount);
-    }
-
-    @Test
-    @DisplayName("Dado uma requisição para consultar saldo sem data, quando o endpoint for chamado, então não deve chamar o TransactionService")
-    void dado_requisicao_sem_data_quando_consultar_saldo_entao_nao_deve_chamar_transaction_service() {
-        // Given - Dado que o serviço retorna uma carteira
-        when(walletsService.findById(walletId)).thenReturn(walletEntity);
-
-        // When - Quando o endpoint de consulta de saldo for chamado sem parâmetro "at"
-        walletController.getBalance(walletId, null);
-
-        // Then - Então não deve chamar o TransactionService
-        verify(transactionService, org.mockito.Mockito.never())
-                .amountByWalletIdAndDate(any(), any());
-    }
-
-    @Test
-    @DisplayName("Dado uma requisição para consultar saldo com data, quando o endpoint for chamado, então não deve usar o saldo atual da carteira")
-    void dado_requisicao_com_data_quando_consultar_saldo_entao_nao_deve_usar_saldo_atual() {
-        // Given - Dado uma data e um saldo histórico diferente do atual
-        String dateTimeString = "2025-01-01T10:00:00Z";
-        BigDecimal historicalBalance = new BigDecimal("300.00");
-
-        when(transactionService.amountByWalletIdAndDate(eq(walletId), any(LocalDateTime.class)))
-                .thenReturn(historicalBalance);
-
-        // When - Quando o endpoint de consulta de saldo for chamado com parâmetro "at"
-        GetBalanceDto response = walletController.getBalance(walletId, dateTimeString);
-
-        // Then - Então deve retornar o saldo histórico, não o saldo atual
-        assertThat(response.currentBalance()).isEqualTo(historicalBalance);
-        assertThat(response.currentBalance()).isNotEqualTo(balance);
     }
 }
 
